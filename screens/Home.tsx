@@ -1,139 +1,72 @@
 import {
-    ActivityIndicator,
     ImageBackground,
-    NativeScrollEvent,
-    NativeSyntheticEvent,
-    Pressable,
     ScrollView,
     StyleSheet,
     Text,
     View,
+    useWindowDimensions,
 } from 'react-native'
 
-import React, { useEffect, useRef, useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { Kanal7Data } from '../types/kanal7-data'
+import { API_URL } from '@env';
+import LinearGradient from 'react-native-linear-gradient';
+import AntDesign from 'react-native-vector-icons/Ionicons';
+import WebView from 'react-native-webview';
 import { fullWidth } from '../constants/constants';
-import { API_KEY, API_URL } from '@env';
 
-const SLIDE_WIDTH = fullWidth - 16;
-const HERO_HEIGHT = 280;
+// Oynatıcı alt kontrol çubuğu yüksekliği
+const BAR_HEIGHT = 56;
 
-type HeroSliderProps = {
-    headlines: Kanal7Data['headlines']
-}
+const playerCss = `
+  .media-control[data-media-control] .media-control-layer[data-controls] {
+    height: ${BAR_HEIGHT}px !important;
+  }
+  .media-control[data-media-control] .media-control-layer[data-controls] button.media-control-button,
+  .media-control[data-media-control] .media-control-layer[data-controls] .media-control-indicator,
+  .media-control[data-media-control] .media-control-layer[data-controls] .media-control-left-panel,
+  .media-control[data-media-control] .media-control-layer[data-controls] .media-control-right-panel {
+    height: ${BAR_HEIGHT}px !important;
+    line-height: ${BAR_HEIGHT}px !important;
+  }
+  .media-control[data-media-control] .media-control-layer[data-controls] .media-control-icon {
+    font-size: 28px !important;
+  }
+  .media-control[data-media-control] .media-control-layer[data-controls] .media-control-indicator[data-live] {
+    font-size: 14px !important;
+  }
+`;
 
-const HeroSlider = ({ headlines }: HeroSliderProps) => {
-    const scrollRef = useRef<ScrollView>(null)
-    const indexRef = useRef(0)
-    const [activeIndex, setActiveIndex] = useState(0)
-
-    // Otomatik kaydırma
-    useEffect(() => {
-        const total = headlines.length
-        if (!total) return
-
-        indexRef.current = 0
-        setActiveIndex(0)
-        scrollRef.current?.scrollTo({ x: 0, y: 0, animated: false })
-
-        const interval = setInterval(() => {
-            const next = (indexRef.current + 1) % total
-            indexRef.current = next
-            setActiveIndex(next)
-
-            scrollRef.current?.scrollTo({
-                x: next * SLIDE_WIDTH,
-                y: 0,
-                animated: true,
-            })
-        }, 4000)
-
-        return () => clearInterval(interval)
-    }, [headlines])
-
-    // Elle kaydırınca noktalar ve sayaç güncellensin
-    const onScrollEnd = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
-        const index = Math.round(e.nativeEvent.contentOffset.x / SLIDE_WIDTH)
-        indexRef.current = index
-        setActiveIndex(index)
+const injectedJS = `
+  (function() {
+    function addStyle() {
+      if (document.getElementById('custom-player-style')) return;
+      var style = document.createElement('style');
+      style.id = 'custom-player-style';
+      style.innerHTML = \`${playerCss}\`;
+      document.head.appendChild(style);
     }
-
-    return (
-        <View style={styles.sliderWrapper}>
-            <ScrollView
-                ref={scrollRef}
-                horizontal
-                pagingEnabled
-                showsHorizontalScrollIndicator={false}
-                onMomentumScrollEnd={onScrollEnd}
-            >
-                {headlines.map((item, index) => (
-                    <Pressable
-                        key={item.slug}
-                        style={styles.slide}
-                    // onPress={() => navigation.navigate('Detail', { slug: item.slug })}
-                    >
-                        <View style={styles.heroContainer}>
-                            <ImageBackground
-                                source={{ uri: item.images.default }}
-                                resizeMode="cover"
-                                style={styles.heroImage}
-                            >
-                                <View style={styles.overlayBottom} />
-
-                                <View style={styles.counterBadge}>
-                                    <Text style={styles.counterText}>
-                                        {index + 1} / {headlines.length}
-                                    </Text>
-                                </View>
-
-                                <View style={styles.bottomContent}>
-                                    <View style={styles.categoryBadge}>
-                                        <Text style={styles.categoryText}>
-                                            GÜNDEM
-                                        </Text>
-                                    </View>
-
-                                    <Text
-                                        style={styles.title}
-                                        numberOfLines={3}
-                                    >
-                                        {item.title}
-                                    </Text>
-
-                                    <Text style={styles.readMore}>
-                                        {item.program_detail.program_time}
-                                    </Text>
-                                </View>
-                            </ImageBackground>
-                        </View>
-                    </Pressable>
-                ))}
-            </ScrollView>
-
-            <View style={styles.dots}>
-                {headlines.map((item, index) => (
-                    <View
-                        key={item.slug}
-                        style={[
-                            styles.dot,
-                            index === activeIndex && styles.activeDot,
-                        ]}
-                    />
-                ))}
-            </View>
-        </View>
-    )
-}
+    addStyle();
+    var tries = 0;
+    var timer = setInterval(function() {
+      addStyle();
+      if (++tries > 20) clearInterval(timer);
+    }, 500);
+  })();
+  true;
+`;
 
 const Home = () => {
     const [data, setData] = useState<Kanal7Data>()
+    const { width } = useWindowDimensions()
 
     useEffect(() => {
         const getData = async () => {
             try {
+                console.log('API_URL:', API_URL)
                 const response = await fetch(API_URL + '/main-page.php')
                 const json: Kanal7Data = await response.json()
+                console.log('JSON:', JSON.stringify(json).slice(0, 300))
                 setData(json)
             } catch (error) {
                 console.log('HATA:', error)
@@ -143,161 +76,62 @@ const Home = () => {
         getData()
     }, [])
 
-    const headlines = data?.headlines ?? []
-
     return (
-        <ScrollView
-            style={styles.screen}
-            contentContainerStyle={styles.screenContent}
-            showsVerticalScrollIndicator={false}
-        >
-            {headlines.length ? (
-                <HeroSlider headlines={headlines} />
-            ) : (
-                <View style={styles.loading}>
-                    <ActivityIndicator size="large" color="#dc2626" />
+        <ScrollView style={{ flex: 1 }}>
+            <LinearGradient
+                colors={['#2563EB', '#7C3AED', '#EC4899']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 0, y: 1 }}
+                style={{ padding: 10, paddingBottom: 30 }}
+            >
+                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                    <AntDesign name='play-circle-outline' size={32} color={'#fff'} />
+                    <Text style={styles.liveText}>CANLI YAYIN</Text>
                 </View>
-            )}
 
+                <WebView
+                    source={{ uri: 'https://www.kanal7.com/canli-yayin-iframe.php' }}
+                    style={{ height: 200 }}
+                    allowsFullscreenVideo
+                    mediaPlaybackRequiresUserAction={false}
+                    javaScriptEnabled
+                    injectedJavaScript={injectedJS}
+                    injectedJavaScriptForMainFrameOnly={false}
+                    injectedJavaScriptBeforeContentLoadedForMainFrameOnly={false}
+                />
+            </LinearGradient>
+
+            <ScrollView
+                horizontal
+                pagingEnabled
+                showsHorizontalScrollIndicator={false}
+            >
+                {data?.headlines?.map((program, index) => (
+                    <ImageBackground
+                        key={index}
+
+                        source={{ uri: program.images.default }}
+                        style={{ width: fullWidth, height: 200 }}
+                        resizeMode="cover"
+                    >
+                        <View style={{ ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.25)', height: '100%' }} >
+                            <Text>321</Text>
+                        </View>
+                    </ImageBackground>
+                ))}
+            </ScrollView>
         </ScrollView>
     )
 }
 
-export default Home
-
 const styles = StyleSheet.create({
-    screen: {
-        flex: 1,
-    },
-
-    screenContent: {
-        padding: 8,
-        paddingBottom: 24,
-    },
-
-    // Sadece slider alanı; flex:1 yok, içeriği kadar yer kaplar
-    sliderWrapper: {
-        width: SLIDE_WIDTH,
-    },
-
-    // Yüklenirken aynı yüksekliği tutar, içerik zıplamaz
-    loading: {
-        width: SLIDE_WIDTH,
-        height: HERO_HEIGHT,
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-
-    slide: {
-        width: SLIDE_WIDTH,
-    },
-
-    heroContainer: {
-        width: '100%',
-        height: HERO_HEIGHT,
-        borderRadius: 16,
-        overflow: 'hidden',
-        backgroundColor: '#e5e5e0',
-
-        elevation: 6,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.25,
-        shadowRadius: 8,
-    },
-
-    heroImage: {
-        width: '100%',
-        height: '100%',
-        justifyContent: 'flex-end',
-    },
-
-
-
-    overlayBottom: {
-        ...StyleSheet.absoluteFillObject,
-        position: 'absolute',
-        left: 0,
-        right: 0,
-        bottom: 0,
-        height: '100%',
-        backgroundColor: 'rgba(0,0,0,0.45)',
-    },
-
-    counterBadge: {
-        position: 'absolute',
-        top: 14,
-        right: 14,
-        paddingHorizontal: 10,
-        paddingVertical: 5,
-        borderRadius: 12,
-        backgroundColor: 'rgba(0,0,0,0.55)',
-    },
-
-    counterText: {
+    liveText: {
         color: '#fff',
-        fontSize: 11,
-        fontWeight: '800',
-        letterSpacing: 0.5,
+        fontWeight: 'bold',
+        fontSize: 24,
+        marginVertical: 8,
+        marginLeft: 5
     },
+});
 
-    bottomContent: {
-        paddingHorizontal: 18,
-        paddingBottom: 18,
-    },
-
-    categoryBadge: {
-        alignSelf: 'flex-start',
-        backgroundColor: '#dc2626',
-        paddingHorizontal: 10,
-        paddingVertical: 4,
-        borderRadius: 4,
-        marginBottom: 10,
-    },
-
-    categoryText: {
-        color: '#fff',
-        fontSize: 12,
-        fontWeight: '900',
-        letterSpacing: 1,
-    },
-
-    title: {
-        color: '#fff',
-        fontSize: 22,
-        fontWeight: '900',
-        lineHeight: 28,
-        letterSpacing: -0.3,
-        textShadowColor: 'rgba(0,0,0,0.35)',
-        textShadowOffset: { width: 0, height: 2 },
-        textShadowRadius: 6,
-    },
-
-    readMore: {
-        color: 'rgba(255,255,255,0.9)',
-        fontSize: 11,
-        fontWeight: '800',
-        letterSpacing: 0.8,
-        marginTop: 12,
-    },
-
-    dots: {
-        flexDirection: 'row',
-        justifyContent: 'center',
-        alignItems: 'center',
-        marginTop: 12,
-    },
-
-    dot: {
-        width: 7,
-        height: 7,
-        borderRadius: 4,
-        backgroundColor: '#d0d0d0',
-        marginHorizontal: 3,
-    },
-
-    activeDot: {
-        width: 22,
-        backgroundColor: '#dc2626',
-    },
-})
+export default Home;

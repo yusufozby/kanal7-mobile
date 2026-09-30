@@ -16,7 +16,7 @@ export default function DrawerNavigator() {
             <Drawer.Navigator
                 drawerContent={() => <DrawerContent />}
                 screenOptions={{
-                    drawerPosition: 'right',
+                    drawerPosition: 'left',
                     header: (props) => <Appbar {...props} />
                 }}
             >
