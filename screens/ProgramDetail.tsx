@@ -3,6 +3,7 @@ import {
     FlatList,
     Image,
     ImageBackground,
+    Pressable,
     ScrollView,
     StyleSheet,
     Text,
@@ -11,12 +12,14 @@ import {
 } from 'react-native';
 
 import React, { useCallback, useMemo, useRef, useState } from 'react';
+import Icon from 'react-native-vector-icons/Entypo';
 
 import { baseApi, fullWidth } from '../constants/constants';
 import RenderHTML from 'react-native-render-html';
 import { WebView } from 'react-native-webview';
 import { useFocusEffect } from '@react-navigation/native';
 import Footer from '../layout/Footer';
+import { COLORS } from '../constants/colorschema';
 
 export type SpecialContent = {
     link: string;
@@ -43,18 +46,6 @@ export type Program = {
     'special-content': SpecialContent[];
 };
 
-const RED = '#dc2626';
-const SIDE = fullWidth * 0.038;
-const CARD_SIDE = fullWidth * 0.041;
-const CARD_PAD = 16;
-const CARD_W = fullWidth * 0.44;
-const CARD_H = CARD_W * 0.6;
-const GAP = fullWidth * 0.038;
-const HERO_H = 230;
-const OVERLAP = 84; // kartın hero görselin üstüne binme miktarı
-const PLAYER_H = (fullWidth * 9) / 16;
-
-/* HTML entity çözücü (&#8217; &amp; &nbsp; vb.) */
 const NAMED: Record<string, string> = {
     nbsp: ' ',
     amp: '&',
@@ -82,9 +73,6 @@ export const decodeHtml = (text?: string): string =>
 const TABS = ['Genel Tanıtım', 'Künye', 'Bölümler'] as const;
 type Tab = (typeof TABS)[number];
 
-/* ------------------------------------------------------------------ */
-/* Video kartı                                                         */
-/* ------------------------------------------------------------------ */
 const VideoCard = ({
     item,
     onPress,
@@ -112,17 +100,13 @@ const VideoCard = ({
     </TouchableOpacity>
 );
 
-/* ------------------------------------------------------------------ */
-/* Ekran                                                               */
-/* ------------------------------------------------------------------ */
-const ProgramDetail = ({ route }: any) => {
+const ProgramDetail = ({ route, navigation }: any) => {
     const { program } = route.params;
     const scrollRef = useRef<ScrollView>(null);
 
     const [contentDetail, setContentDetail] = useState<Program>();
     const [isLoading, setIsLoading] = useState(true);
     const [tab, setTab] = useState<Tab>('Genel Tanıtım');
-    // Seçili video: null ise izle7_content kullanılır
     const [selected, setSelected] = useState<{ title: string; embed: string } | null>(null);
 
     useFocusEffect(
@@ -137,7 +121,6 @@ const ProgramDetail = ({ route }: any) => {
                         throw new Error(`HTTP Error: ${response.status}`);
                     }
                     const data: Program = await response.json();
-                    // DEBUG: künye neden boş? (işin bitince sil)
                     console.log('KEYS:', Object.keys(data));
                     console.log('TAG:', JSON.stringify(data.tag));
                     setContentDetail(data);
@@ -168,182 +151,211 @@ const ProgramDetail = ({ route }: any) => {
         scrollRef.current?.scrollTo({ y: 0, animated: true });
     };
 
+    // Geri butonlu appbar (navigator'da headerShown: false olduğu için burada çiziliyor)
+    const backBar = (
+        <View style={styles.appbar}>
+            <Pressable
+                style={styles.backButton}
+                hitSlop={8}
+                onPress={() => navigation.goBack()}
+            >
+                <Icon name="chevron-left" size={34} color="#fff" />
+            </Pressable>
+        </View>
+    );
+
     if (isLoading) {
         return (
-            <View style={styles.loader}>
-                <ActivityIndicator size="large" color={RED} />
+            <View style={{ flex: 1, backgroundColor: '#fff' }}>
+                {backBar}
+                <View style={styles.loader}>
+                    <ActivityIndicator size="large" color={COLORS.primary} />
+                </View>
             </View>
         );
     }
 
     return (
-        <ScrollView
-            ref={scrollRef}
-            style={styles.screen}
-            showsVerticalScrollIndicator={false}
-            contentContainerStyle={{ paddingBottom: 50 }}
-        >
-            {/* Hero görsel + yayın zamanı */}
-            <ImageBackground
-                style={styles.imageBackground}
-                source={{ uri: program.images.default }}
+        <View style={{ flex: 1, backgroundColor: '#fff' }}>
+            {backBar}
+
+            <ScrollView
+                ref={scrollRef}
+                style={styles.screen}
+                showsVerticalScrollIndicator={false}
+                contentContainerStyle={{ paddingBottom: 50 }}
             >
-                {!!(contentDetail?.time ?? program.time) && (
-                    <Text style={styles.heroTime}>
-                        {contentDetail?.time ?? program.time}
-                    </Text>
-                )}
-            </ImageBackground>
+                <ImageBackground
+                    style={styles.imageBackground}
+                    source={{ uri: program.images.default }}
+                >
+                    {!!(contentDetail?.time ?? program.time) && (
+                        <Text style={styles.heroTime}>
+                            {contentDetail?.time ?? program.time}
+                        </Text>
+                    )}
+                </ImageBackground>
 
-            {/* Başlık kartı */}
-            <View style={styles.cardContainer}>
-                <View style={styles.card}>
-                    <Text style={styles.cardTitle}>
-                        {decodeHtml(contentDetail?.title ?? program.title)}
-                    </Text>
-                    <View style={styles.cardDivider} />
+                <View style={styles.cardContainer}>
+                    <View style={styles.card}>
+                        <Text style={styles.cardTitle}>
+                            {decodeHtml(contentDetail?.title ?? program.title)}
+                        </Text>
+                        <View style={styles.cardDivider} />
 
-                    <View style={styles.cardBody}>
-                        {!!contentDetail?.spot && (
-                            <RenderHTML
-                                contentWidth={fullWidth - CARD_SIDE * 2 - CARD_PAD * 2}
-                                source={{ html: contentDetail.spot }}
-                                baseStyle={styles.cardSpot}
-                                tagsStyles={{ p: { marginTop: 0, marginBottom: 0 } }}
-                            />
-                        )}
-                        {!!current?.title && (
-                            <Text style={styles.cardEpisode}>
-                                {decodeHtml(current.title)}
-                            </Text>
-                        )}
-                    </View>
-                </View>
-            </View>
-
-            {/* Video oynatıcı (tam genişlik) */}
-            {!!current?.embed && (
-                <View style={styles.player}>
-                    <WebView
-                        key={current.embed}
-                        source={{ uri: current.embed }}
-                        allowsFullscreenVideo
-                        allowsInlineMediaPlayback
-                        mediaPlaybackRequiresUserAction={false}
-                        javaScriptEnabled
-                        startInLoadingState
-                        scrollEnabled={false}
-                        renderLoading={() => (
-                            <View style={styles.playerLoader}>
-                                <ActivityIndicator color={RED} />
-                            </View>
-                        )}
-                    />
-                </View>
-            )}
-
-            {/* Sekmeler */}
-            <View style={styles.tabsWrap}>
-                <View style={styles.tabsRow}>
-                    {TABS.map((t) => {
-                        const active = t === tab;
-                        return (
-                            <TouchableOpacity
-                                key={t}
-                                style={styles.tab}
-                                activeOpacity={0.7}
-                                onPress={() => setTab(t)}
-                            >
-                                <Text style={styles.tabText}>{t}</Text>
-                                {active && (
-                                    <>
-                                        <View style={styles.tabBar} />
-                                        <View style={styles.tabArrow} />
-                                    </>
-                                )}
-                            </TouchableOpacity>
-                        );
-                    })}
-                </View>
-                <View style={styles.tabsLine} />
-            </View>
-
-            {/* GENEL TANITIM */}
-            {tab === 'Genel Tanıtım' && (
-                <>
-                    {episodes.length > 0 && (
-                        <FlatList
-                            data={episodes}
-                            horizontal
-                            keyExtractor={(item) => item.embed}
-                            showsHorizontalScrollIndicator={false}
-                            contentContainerStyle={styles.hList}
-                            initialNumToRender={4}
-                            windowSize={5}
-                            renderItem={({ item }) => (
-                                <VideoCard
-                                    item={item}
-                                    style={{ marginRight: GAP }}
-                                    onPress={() => playVideo(item)}
+                        <View style={styles.cardBody}>
+                            {!!contentDetail?.spot && (
+                                <RenderHTML
+                                    contentWidth={fullWidth - fullWidth * 0.041 * 2 - 16 * 2}
+                                    source={{ html: contentDetail.spot }}
+                                    baseStyle={styles.cardSpot}
+                                    tagsStyles={{ p: { marginTop: 0, marginBottom: 0 } }}
                                 />
                             )}
-                        />
-                    )}
-
-                    {!!cleanDetail && (
-                        <View style={styles.textBlock}>
-                            <RenderHTML
-                                contentWidth={fullWidth - SIDE * 2}
-                                source={{ html: cleanDetail }}
-                                baseStyle={styles.bodyText}
-                                tagsStyles={{ p: { marginTop: 0, marginBottom: 22 } }}
-                            />
+                            {!!current?.title && (
+                                <Text style={styles.cardEpisode}>
+                                    {decodeHtml(current.title)}
+                                </Text>
+                            )}
                         </View>
-                    )}
-                </>
-            )}
-
-            {/* KÜNYE */}
-            {tab === 'Künye' && (
-                <View style={[styles.textBlock, { marginTop: 24 }]}>
-                    {contentDetail?.tag &&
-                        contentDetail.tag.replace(/<[^>]*>|&nbsp;|\s/gi, '').length > 0 ? (
-                        <RenderHTML
-                            contentWidth={fullWidth - SIDE * 2}
-                            source={{ html: contentDetail.tag }}
-                            baseStyle={styles.bodyText}
-                            tagsStyles={{ p: { marginTop: 0, marginBottom: 14 } }}
-                        />
-                    ) : (
-                        <Text style={styles.bodyText}>Künye bilgisi bulunamadı.</Text>
-                    )}
+                    </View>
                 </View>
-            )}
 
-            {/* BÖLÜMLER */}
-            {tab === 'Bölümler' && (
-                <View style={styles.grid}>
-                    {episodes.map((item) => (
-                        <VideoCard
-                            key={item.embed}
-                            item={item}
-                            style={{ marginBottom: GAP }}
-                            onPress={() => playVideo(item)}
+                {!!current?.embed && (
+                    <View style={styles.player}>
+                        <WebView
+                            key={current.embed}
+                            source={{ uri: current.embed }}
+                            allowsFullscreenVideo
+                            allowsInlineMediaPlayback
+                            mediaPlaybackRequiresUserAction={false}
+                            javaScriptEnabled
+                            startInLoadingState
+                            scrollEnabled={false}
+                            renderLoading={() => (
+                                <View style={styles.playerLoader}>
+                                    <ActivityIndicator color={COLORS.primary} />
+                                </View>
+                            )}
                         />
-                    ))}
-                    {episodes.length === 0 && (
-                        <Text style={styles.bodyText}>Bölüm bulunamadı.</Text>
-                    )}
+                    </View>
+                )}
+
+                <View style={styles.tabsWrap}>
+                    <View style={styles.tabsRow}>
+                        {TABS.map((t) => {
+                            const active = t === tab;
+                            return (
+                                <TouchableOpacity
+                                    key={t}
+                                    style={styles.tab}
+                                    activeOpacity={0.7}
+                                    onPress={() => setTab(t)}
+                                >
+                                    <Text style={styles.tabText}>{t}</Text>
+                                    {active && (
+                                        <>
+                                            <View style={styles.tabBar} />
+                                            <View style={styles.tabArrow} />
+                                        </>
+                                    )}
+                                </TouchableOpacity>
+                            );
+                        })}
+                    </View>
+                    <View style={styles.tabsLine} />
                 </View>
-            )}
-            <Footer />
-        </ScrollView>
+
+                {tab === 'Genel Tanıtım' && (
+                    <>
+                        {episodes.length > 0 && (
+                            <FlatList
+                                data={episodes}
+                                horizontal
+                                keyExtractor={(item) => item.embed}
+                                showsHorizontalScrollIndicator={false}
+                                contentContainerStyle={styles.hList}
+                                initialNumToRender={4}
+                                windowSize={5}
+                                renderItem={({ item }) => (
+                                    <VideoCard
+                                        item={item}
+                                        style={{ marginRight: fullWidth * 0.038 }}
+                                        onPress={() => playVideo(item)}
+                                    />
+                                )}
+                            />
+                        )}
+
+                        {!!cleanDetail && (
+                            <View style={styles.textBlock}>
+                                <RenderHTML
+                                    contentWidth={fullWidth - fullWidth * 0.038 * 2}
+                                    source={{ html: cleanDetail }}
+                                    baseStyle={styles.bodyText}
+                                    tagsStyles={{ p: { marginTop: 0, marginBottom: 22 } }}
+                                />
+                            </View>
+                        )}
+                    </>
+                )}
+
+                {tab === 'Künye' && (
+                    <View style={[styles.textBlock, { marginTop: 24 }]}>
+                        {contentDetail?.tag &&
+                            contentDetail.tag.replace(/<[^>]*>|&nbsp;|\s/gi, '').length > 0 ? (
+                            <RenderHTML
+                                contentWidth={fullWidth - fullWidth * 0.038 * 2}
+                                source={{ html: contentDetail.tag }}
+                                baseStyle={styles.bodyText}
+                                tagsStyles={{ p: { marginTop: 0, marginBottom: 14 } }}
+                            />
+                        ) : (
+                            <Text style={styles.bodyText}>Künye bilgisi bulunamadı.</Text>
+                        )}
+                    </View>
+                )}
+
+                {tab === 'Bölümler' && (
+                    <View style={styles.grid}>
+                        {episodes.map((item) => (
+                            <VideoCard
+                                key={item.embed}
+                                item={item}
+                                style={{ marginBottom: fullWidth * 0.038 }}
+                                onPress={() => playVideo(item)}
+                            />
+                        ))}
+                        {episodes.length === 0 && (
+                            <Text style={styles.bodyText}>Bölüm bulunamadı.</Text>
+                        )}
+                    </View>
+                )}
+
+                <Footer />
+            </ScrollView>
+        </View>
     );
 };
 
 export default ProgramDetail;
 
 const styles = StyleSheet.create({
+    /* Appbar (sadece geri butonu) */
+    appbar: {
+        backgroundColor: '#dc2626',
+        paddingVertical: 6,
+        paddingHorizontal: 6,
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+    backButton: {
+        width: 44,
+        height: 44,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+
     screen: {
         flex: 1,
         backgroundColor: '#fff',
@@ -355,15 +367,14 @@ const styles = StyleSheet.create({
         backgroundColor: '#fff',
     },
 
-    /* Hero + kart */
     imageBackground: {
         width: fullWidth,
-        height: HERO_H,
+        height: 230,
     },
     heroTime: {
         position: 'absolute',
-        left: CARD_SIDE + CARD_PAD,
-        bottom: OVERLAP + 10,
+        left: fullWidth * 0.041 + 16,
+        bottom: 84 + 10,
         color: '#fff',
         fontSize: 20,
         fontWeight: 'bold',
@@ -372,8 +383,8 @@ const styles = StyleSheet.create({
         textShadowRadius: 4,
     },
     cardContainer: {
-        paddingHorizontal: CARD_SIDE,
-        marginTop: -OVERLAP,
+        paddingHorizontal: fullWidth * 0.041,
+        marginTop: -84,
     },
     card: {
         backgroundColor: '#fff',
@@ -387,7 +398,7 @@ const styles = StyleSheet.create({
         fontWeight: 'bold',
         fontSize: 21,
         color: '#2b2b3a',
-        marginHorizontal: CARD_PAD,
+        marginHorizontal: 16,
     },
     cardDivider: {
         width: '100%',
@@ -397,7 +408,7 @@ const styles = StyleSheet.create({
         marginBottom: 18,
     },
     cardBody: {
-        paddingHorizontal: CARD_PAD,
+        paddingHorizontal: 16,
     },
     cardSpot: {
         fontSize: 16,
@@ -409,11 +420,9 @@ const styles = StyleSheet.create({
         fontSize: 17,
         color: '#2b2b3a',
     },
-
-    /* Oynatıcı */
     player: {
         width: fullWidth,
-        height: PLAYER_H,
+        height: (fullWidth * 9) / 16,
         backgroundColor: '#000',
     },
     playerLoader: {
@@ -422,10 +431,8 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         backgroundColor: '#000',
     },
-
-    /* Sekmeler */
     tabsWrap: {
-        paddingHorizontal: SIDE,
+        paddingHorizontal: fullWidth * 0.038,
         paddingTop: 10,
         backgroundColor: '#fff',
     },
@@ -441,7 +448,7 @@ const styles = StyleSheet.create({
     tabText: {
         fontSize: 16,
         fontWeight: 'bold',
-        color: RED,
+        color: COLORS.primary,
     },
     tabBar: {
         position: 'absolute',
@@ -449,7 +456,7 @@ const styles = StyleSheet.create({
         left: 0,
         right: 0,
         height: 3,
-        backgroundColor: RED,
+        backgroundColor: COLORS.primary,
     },
     tabArrow: {
         position: 'absolute',
@@ -461,30 +468,28 @@ const styles = StyleSheet.create({
         borderBottomWidth: 9,
         borderLeftColor: 'transparent',
         borderRightColor: 'transparent',
-        borderBottomColor: RED,
+        borderBottomColor: COLORS.primary,
     },
     tabsLine: {
         height: 1.5,
-        backgroundColor: RED,
+        backgroundColor: COLORS.primary,
         marginTop: -1.5,
     },
-
-    /* Video kartları */
     hList: {
-        paddingLeft: SIDE,
-        paddingRight: SIDE,
+        paddingLeft: fullWidth * 0.038,
+        paddingRight: fullWidth * 0.038,
         paddingTop: 22,
     },
     grid: {
         flexDirection: 'row',
         flexWrap: 'wrap',
         justifyContent: 'space-between',
-        paddingHorizontal: SIDE,
+        paddingHorizontal: fullWidth * 0.038,
         paddingTop: 22,
     },
     videoCard: {
-        width: CARD_W,
-        height: CARD_H,
+        width: fullWidth * 0.44,
+        height: fullWidth * 0.44 * 0.6,
         backgroundColor: '#222',
         overflow: 'hidden',
     },
@@ -529,10 +534,8 @@ const styles = StyleSheet.create({
         fontSize: 13,
         lineHeight: 17,
     },
-
-    /* Metin */
     textBlock: {
-        paddingHorizontal: SIDE,
+        paddingHorizontal: fullWidth * 0.038,
         marginTop: 50,
     },
     bodyText: {

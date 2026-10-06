@@ -9,6 +9,9 @@ import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityI
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import LiveStream from '../screens/LiveStream';
 import BoardCasting from '../screens/BoardCasting';
+import Frequencies from '../screens/Frequencies';
+import ImprintScreen from '../screens/ImprintScreen';
+import ContactScreen from '../screens/ContactPage';
 const Drawer = createDrawerNavigator();
 type MenuItem = {
     label: string;
@@ -128,9 +131,12 @@ export default function DrawerNavigator() {
                 }}
             >
                 <Drawer.Screen component={Home} name='home' />
-                <Drawer.Screen component={ProgramDetail} name='programDetail' />
+                <Drawer.Screen component={ProgramDetail} options={{ headerShown: false }} name='programDetail' />
                 <Drawer.Screen component={LiveStream} name='liveStream' options={{ headerShown: false }} />
                 <Drawer.Screen component={BoardCasting} name='boardCasting' />
+                <Drawer.Screen component={Frequencies} name='frequency' />
+                <Drawer.Screen component={ImprintScreen} name='publisher' />
+                <Drawer.Screen component={ContactScreen} name='contact' />
             </Drawer.Navigator>
         </NavigationContainer>
     );
