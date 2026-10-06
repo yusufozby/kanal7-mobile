@@ -3,8 +3,6 @@ import React, { useEffect, useLayoutEffect, useMemo, useState } from 'react';
 import { baseApi } from '../constants/constants';
 import Footer from '../layout/Footer';
 import { COLORS } from '../constants/colorschema';
-
-/* ---------- Tipler ---------- */
 type ImprintResponse = {
     content_detail: {
         title: string;
@@ -19,8 +17,6 @@ type Section = { heading?: string; lines: string[] };
 type RtukItem = { label: string; value: string };
 type RtukGroup = { heading: string; items: RtukItem[] };
 type Rtuk = { title: string; groups: RtukGroup[] };
-
-/* ---------- HTML yardımcıları ---------- */
 const NAMED: Record<string, string> = {
     nbsp: ' ',
     amp: '&',
@@ -42,8 +38,6 @@ const toText = (html: string): string =>
         .replace(/&([a-z]+);/gi, (m, n) => NAMED[n.toLowerCase()] ?? m)
         .replace(/\s+/g, ' ')
         .trim();
-
-// <h3>BAŞLIK</h3> + <p>satır<br />satır</p> yapısını bölümlere ayırır
 const parseSections = (html: string): Section[] => {
     const parts = html.replace(/\r?\n/g, '').split(/(<h[1-6][^>]*>[\s\S]*?<\/h[1-6]>)/gi);
 
@@ -71,8 +65,6 @@ const parseSections = (html: string): Section[] => {
 
     return sections;
 };
-
-// RTÜK bloğu: başlık + (başlık, <ul><li><span.left>etiket</span> değer</li></ul>) grupları
 const parseRtuk = (html: string): Rtuk => {
     const clean = html.replace(/<!--[\s\S]*?-->/g, '').replace(/\r?\n/g, '');
 
@@ -88,7 +80,6 @@ const parseRtuk = (html: string): Rtuk => {
         const before = clean.slice(last, ul.index);
         last = ul.index + ul[0].length;
 
-        // Listenin hemen öncesindeki son dolu metin = grup başlığı
         const pieces = before
             .split(/<\/p>|<p[^>]*>|<br\s*\/?>/i)
             .map(toText)
@@ -110,8 +101,6 @@ const parseRtuk = (html: string): Rtuk => {
 
     return { title, groups };
 };
-
-/* ---------- Ekran ---------- */
 const ImprintScreen = ({ navigation }: { navigation: any }) => {
     const [data, setData] = useState<ImprintResponse['content_detail']>();
     const [isLoading, setIsLoading] = useState(true);
@@ -182,7 +171,6 @@ const ImprintScreen = ({ navigation }: { navigation: any }) => {
                     ))
                 )}
 
-                {/* RTÜK - Medya Hizmet Sağlayıcı Kuruluş Kimlik Bilgisi */}
                 {!!rtuk && rtuk.groups.length > 0 && (
                     <View style={styles.section}>
                         {!!rtuk.title && <Text style={styles.heading}>{rtuk.title}</Text>}
@@ -239,8 +227,6 @@ const styles = StyleSheet.create({
         lineHeight: 23,
         color: '#000',
     },
-
-    /* RTÜK bloğu */
     rtukGroup: {
         marginBottom: 28,
     },
