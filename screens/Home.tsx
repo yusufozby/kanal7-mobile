@@ -158,24 +158,27 @@ const Home = ({ navigation }: { navigation: any }) => {
                 const statusText = item.status?.trim() ? item.status.trim() : 'BUGÜN';
 
                 return (
-                    <ImageBackground
-                        key={i}
-                        source={{ uri: item.images.default }}
-                        style={styles.featuredCard}
-                        resizeMode="cover"
-                    >
-                        <LinearGradient
-                            colors={['transparent', 'rgba(0,0,0,0.7)']}
-                            style={styles.featuredOverlay}
+                    <Pressable onPress={() =>
+                        navigation.navigate('programDetail', { program: item })}>
+                        <ImageBackground
+                            key={i}
+                            source={{ uri: item.images.default }}
+                            style={styles.featuredCard}
+                            resizeMode="cover"
                         >
-                            <View style={styles.featuredRow}>
-                                <Text style={styles.featuredLive}>{statusText}</Text>
-                                <Text style={styles.featuredTime}>{item.start_hour}</Text>
-                            </View>
-                            <View style={styles.featuredLine} />
-                            <Text style={styles.featuredTitle}>{item.title}</Text>
-                        </LinearGradient>
-                    </ImageBackground>
+                            <LinearGradient
+                                colors={['transparent', 'rgba(0,0,0,0.7)']}
+                                style={styles.featuredOverlay}
+                            >
+                                <View style={styles.featuredRow}>
+                                    <Text style={styles.featuredLive}>{statusText}</Text>
+                                    <Text style={styles.featuredTime}>{item.start_hour}</Text>
+                                </View>
+                                <View style={styles.featuredLine} />
+                                <Text style={styles.featuredTitle}>{item.title}</Text>
+                            </LinearGradient>
+                        </ImageBackground>
+                    </Pressable>
                 );
             })}
             <Footer />

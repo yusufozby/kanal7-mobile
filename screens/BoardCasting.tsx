@@ -22,10 +22,7 @@ export type ScheduleItem = {
     status: string;
 };
 
-// API 7 günlük bir dizi döndürüyor: [Pazartesi, Salı, ..., Pazar]
 const tabTitles = ['PZT', 'SAL', 'ÇAR', 'PER', 'CUM', 'CTS', 'PZR'];
-
-// JS: Pazar = 0 → bizim sıramızda Pazar = 6
 const getTodayIndex = () => (new Date().getDay() + 6) % 7;
 
 const BoardCasting = ({ navigation }: { navigation: any }) => {
@@ -59,7 +56,6 @@ const BoardCasting = ({ navigation }: { navigation: any }) => {
 
     return (
         <View style={styles.screen}>
-            {/* Gün sekmeleri */}
             <View style={styles.tabsRow}>
                 {tabTitles.map((title, i) => {
                     const active = i === currentTab;
@@ -78,8 +74,6 @@ const BoardCasting = ({ navigation }: { navigation: any }) => {
                 })}
             </View>
             <View style={styles.tabsLine} />
-
-            {/* Yayın listesi */}
             {isLoading ? (
                 <View style={styles.loader}>
                     <ActivityIndicator size="large" color={COLORS.primary} />
@@ -122,7 +116,6 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
 
-    /* Sekmeler */
     tabsRow: {
         flexDirection: 'row',
         backgroundColor: '#fff',
@@ -157,7 +150,6 @@ const styles = StyleSheet.create({
         width: '100%',
     },
 
-    /* Satırlar */
     row: {
         flexDirection: 'row',
         alignItems: 'center',

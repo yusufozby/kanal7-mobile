@@ -20,55 +20,14 @@ import { WebView } from 'react-native-webview';
 import { useFocusEffect } from '@react-navigation/native';
 import Footer from '../layout/Footer';
 import { COLORS } from '../constants/colorschema';
+import { Program, SpecialContent } from '../types/types';
+import { decodeHtml, NAMED } from '../constants';
 
-export type SpecialContent = {
-    link: string;
-    image: string;
-    title: string;
-    embed: string;
-};
 
-export type Program = {
-    title: string;
-    spot: string;
-    category: { title: string; slug: string };
-    slug: string;
-    images: {
-        default: string;
-        thumbnail: string;
-        medium: string;
-        large: string;
-    };
-    izle7_content: { title: string; embed: string };
-    time: string;
-    detail: string;
-    tag: string;
-    'special-content': SpecialContent[];
-};
 
-const NAMED: Record<string, string> = {
-    nbsp: ' ',
-    amp: '&',
-    lt: '<',
-    gt: '>',
-    quot: '"',
-    apos: "'",
-    lsquo: '‘',
-    rsquo: '’',
-    ldquo: '“',
-    rdquo: '”',
-    ndash: '–',
-    mdash: '—',
-    hellip: '…',
-};
 
-export const decodeHtml = (text?: string): string =>
-    (text ?? '')
-        .replace(/&#x([0-9a-f]+);/gi, (_, h) => String.fromCodePoint(parseInt(h, 16)))
-        .replace(/&#(\d+);/g, (_, d) => String.fromCodePoint(parseInt(d, 10)))
-        .replace(/&([a-z]+);/gi, (m, n) => NAMED[n.toLowerCase()] ?? m)
-        .replace(/\s+/g, ' ')
-        .trim();
+
+
 
 const TABS = ['Genel Tanıtım', 'Künye', 'Bölümler'] as const;
 type Tab = (typeof TABS)[number];
@@ -151,7 +110,7 @@ const ProgramDetail = ({ route, navigation }: any) => {
         scrollRef.current?.scrollTo({ y: 0, animated: true });
     };
 
-    // Geri butonlu appbar (navigator'da headerShown: false olduğu için burada çiziliyor)
+
     const backBar = (
         <View style={styles.appbar}>
             <Pressable
@@ -341,7 +300,6 @@ const ProgramDetail = ({ route, navigation }: any) => {
 export default ProgramDetail;
 
 const styles = StyleSheet.create({
-    /* Appbar (sadece geri butonu) */
     appbar: {
         backgroundColor: '#dc2626',
         paddingVertical: 6,

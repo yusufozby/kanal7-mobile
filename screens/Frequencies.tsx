@@ -14,7 +14,6 @@ import type { DrawerNavigationProp } from '@react-navigation/drawer';
 import { baseApi } from '../constants/constants';
 import { COLORS } from '../constants/colorschema';
 
-// ---------- Tipler ----------
 export interface SatelliteInfo {
     satellite: string;
     frequency: string;
@@ -54,11 +53,6 @@ interface SectionProps extends SectionItem {
 interface MenuButtonProps {
     onPress?: () => void;
 }
-
-// ---------- Sabitler ----------
-
-
-// API'ye ulaşılamazsa gösterilecek varsayılan veri
 const DEFAULT_DATA: FrekansData = {
     sd: { satellite: 'Türksat 4A', frequency: '12.095', symbol: 4800, polarization: 'Yatay (Horz)', fec: '5/6' },
     hd: { satellite: 'Türksat 4A', frequency: '12.103', symbol: 8333, polarization: 'Yatay ( Horz )', fec: '2/3' },
@@ -77,8 +71,6 @@ const DEFAULT_DATA: FrekansData = {
         tel_free2: '0800 211 20 88',
     },
 };
-
-// ---------- Bileşenler ----------
 const MenuButton: React.FC<MenuButtonProps> = ({ onPress }) => (
     <TouchableOpacity style={styles.menuBtn} onPress={onPress} activeOpacity={0.7}>
         <View style={styles.bar} />
@@ -108,7 +100,6 @@ const satLines = (s: SatelliteInfo): string[] => [
     `Symbol Rate ${s.symbol}`,
 ];
 
-// ---------- Ekran ----------
 const Frequencies: React.FC = () => {
     const navigation = useNavigation<DrawerNavigationProp<ParamListBase>>();
     const [data, setData] = useState<FrekansData>(DEFAULT_DATA);
@@ -125,7 +116,6 @@ const Frequencies: React.FC = () => {
                 if (!cancelled) setData(json);
             })
             .catch(() => {
-                // Hata olursa varsayılan veri gösterilmeye devam eder
             });
 
         return () => {
@@ -177,7 +167,6 @@ const Frequencies: React.FC = () => {
 
 export default Frequencies;
 
-// ---------- Stiller ----------
 const styles = StyleSheet.create({
     root: { flex: 1, backgroundColor: '#FFFFFF' },
 

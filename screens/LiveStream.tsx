@@ -13,7 +13,7 @@ const LiveStream = () => {
         <View style={styles.container}>
             <StatusBar hidden={isFocused} />
 
-            {/* Ekrandan çıkınca WebView kaldırılır, yayın arka planda çalmaya devam etmez */}
+
             {isFocused && (
                 <WebView
                     source={{ uri: STREAM_PAGE }}
