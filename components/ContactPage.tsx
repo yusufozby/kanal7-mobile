@@ -1,70 +1,15 @@
 import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from 'react-native';
 import React, { useEffect, useLayoutEffect, useMemo, useState } from 'react';
-import { baseApi } from '../constants/constants';
+import { baseApi, parseSections } from '../constants/constants';
 import Footer from '../layout/Footer';
 import { COLORS } from '../constants/colorschema';
+import { PageData } from '../types/types';
 
 const PAGE_ENDPOINT = `${baseApi}/page-detail.php?slug=`;
 
-type PageData = {
-    title: string;
-    slug: string;
-    detail: string;
-    clear_detail?: string;
-};
 
-type Section = {
-    heading?: string;
-    lines: string[];
-};
-const NAMED: Record<string, string> = {
-    nbsp: ' ',
-    amp: '&',
-    lt: '<',
-    gt: '>',
-    quot: '"',
-    apos: "'",
-    rsquo: '’',
-    lsquo: '‘',
-    ndash: '–',
-    mdash: '—',
-};
 
-const toText = (html: string): string =>
-    html
-        .replace(/<[^>]*>/g, '')
-        .replace(/&#x([0-9a-f]+);/gi, (_, h) => String.fromCodePoint(parseInt(h, 16)))
-        .replace(/&#(\d+);/g, (_, d) => String.fromCodePoint(parseInt(d, 10)))
-        .replace(/&([a-z]+);/gi, (m, n) => NAMED[n.toLowerCase()] ?? m)
-        .replace(/\s+/g, ' ')
-        .trim();
-export const parseSections = (html: string): Section[] => {
-    const parts = html.replace(/\r?\n/g, '').split(/(<h[1-6][^>]*>[\s\S]*?<\/h[1-6]>)/gi);
 
-    const sections: Section[] = [];
-    let current: Section = { lines: [] };
-
-    const push = () => {
-        if (current.heading || current.lines.length > 0) sections.push(current);
-    };
-
-    for (const part of parts) {
-        const match = part.match(/^<h[1-6][^>]*>([\s\S]*?)<\/h[1-6]>$/i);
-        if (match) {
-            push();
-            current = { heading: toText(match[1]), lines: [] };
-        } else {
-            const lines = part
-                .split(/<br\s*\/?>|<\/p>|<\/div>/i)
-                .map(toText)
-                .filter(Boolean);
-            current.lines.push(...lines);
-        }
-    }
-    push();
-
-    return sections;
-};
 
 type Props = {
     navigation: any;
